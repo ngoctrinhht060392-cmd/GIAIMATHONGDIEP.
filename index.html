@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trò Chơi: GIẢI MẬT THƯ - Chủ đề Quang Hợp</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%);
+            min-height: 100vh;
+            overflow: hidden; /* For floating leaves */
+        }
+        
+        /* Floating Leaves Animation */
+        .leaf {
+            position: absolute;
+            background: linear-gradient(135deg, #a7f3d0, #4ade80);
+            border-radius: 0 50% 0 50%;
+            opacity: 0.4;
+            box-shadow: inset 2px 2px 4px rgba(255,255,255,0.5);
+            animation: fall linear infinite;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        @keyframes fall {
+            0% { transform: translateY(-10vh) rotate(0deg) translateX(0); opacity: 0; }
+            10% { opacity: 0.6; }
+            90% { opacity: 0.6; }
+            100% { transform: translateY(100vh) rotate(360deg) translateX(50px); opacity: 0; }
+        }
+
+        .secret-letter {
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: 900;
+            border: 2px dashed #94a3b8;
+            /* Leaf shape */
+            border-radius: 16px 4px 16px 4px;
+            background-color: rgba(255, 255, 255, 0.7);
+            color: transparent; 
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            position: relative;
+        }
+
+        .secret-letter.revealed {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border-style: solid;
+            border-color: #047857;
+            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4);
+            transform: scale(1.1);
+        }
+        
+        .secret-letter.missed {
+            background: #e2e8f0;
+            color: #94a3b8;
+            border-style: solid;
+            border-color: #cbd5e1;
+        }
+
+        /* Group separator for words */
+        .word-gap {
+            width: 12px;
+        }
+
+        .option-btn {
+            transition: all 0.2s ease;
+        }
+        .option-btn:hover:not(:disabled) {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2), 0 4px 6px -2px rgba(16, 185, 129, 0.1);
+            border-color: #34d399;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #a7f3d0; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #34d399; }
+
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Glassmorphism containers */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 50;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+        }
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased p-4 md:p-8 flex items-center justify-center relative h-screen">
+
+    <div id="leaves-container" class="absolute inset-0 overflow-hidden pointer-events-none"></div>
+
+    <div id="app-container" class="w-full max-w-4xl h-[95vh] glass-panel rounded-3xl shadow-2xl overflow-hidden relative flex flex-col z-10 border-4 border-white/40">
+        
+        <!-- Header -->
+        <header class="bg-gradient-to-r from-emerald-600 to-green-500 text-white p-4 text-center shadow-md z-10 flex justify-between items-center relative shrink-0">
+            <!-- Sun burst effect in header -->
+            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-yellow-300/30 via-transparent to-transparent"></div>
+            
+            <div class="w-10"></div> <!-- Spacer for centering -->
+            <h1 class="text-2xl md:text-3xl font-black tracking-widest text-center drop-shadow-md flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-300" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4.22 4.22a1 1 0 011.415 0l.708.708a1 1 0 01-1.414 1.414l-.708-.708a1 1 0 010-1.414zM16 10a1 1 0 011-1h1a1 1 0 110 2h-1a1 1 0 01-1-1zm-4.22 4.22a1 1 0 010 1.415l-.708.708a1 1 0 01-1.414-1.414l.708-.708a1 1 0 011.414 0zM10 16a1 1 0 01-1-1v-1a1 1 0 112 0v1a1 1 0 01-1 1zm-4.22-4.22a1 1 0 01-1.415 0l-.708-.708a1 1 0 011.414-1.414l.708.708a1 1 0 010 1.414zM4 10a1 1 0 01-1 1H2a1 1 0 110-2h1a1 1 0 011 1zm4.22-4.22a1 1 0 010-1.415l-.708-.708a1 1 0 01-1.414 1.414l.708.708a1 1 0 011.414 0zM10 6a4 4 0 100 8 4 4 0 000-8z" clip-rule="evenodd" />
+                </svg>
+                GIẢI MẬT THƯ
+            </h1>
+            <button onclick="showAdminLogin()" class="text-emerald-100 hover:text-white transition-colors p-2 z-10" title="Quản trị viên">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+            </button>
+        </header>
+
+        <div class="flex-1 relative overflow-hidden flex flex-col">
+            <div id="screen-start" class="absolute inset-0 flex flex-col items-center justify-center p-6 fade-in bg-white/50 z-20 overflow-y-auto">
+                <div class="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl border border-emerald-100 relative overflow-hidden">
+                    <!-- Decor -->
+                    <div class="absolute -top-10 -right-10 w-32 h-32 bg-green-100 rounded-full mix-blend-multiply filter blur-xl opacity-70"></div>
+                    <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-emerald-100 rounded-full mix-blend-multiply filter blur-xl opacity-70"></div>
+
+                    <h2 class="text-3xl font-black text-center text-emerald-700 mb-6 relative z-10">Sẵn Sàng Khám Phá!</h2>
+                    
+                    <div class="mb-6 p-4 bg-emerald-50 text-emerald-800 rounded-xl text-sm leading-relaxed border border-emerald-200 relative z-10 shadow-inner">
+                        <strong>🌿 Nhiệm vụ của em:</strong> Trả lời 21 câu hỏi trắc nghiệm để tìm các chữ cái ẩn giấu. Mỗi câu đúng sẽ mở khóa 1 mảnh ghép. Hãy xâu chuỗi chúng lại ở cuối trò chơi để tìm ra <strong>Thông điệp Quang Hợp</strong> bí mật nhé!
+                        <div class="mt-2 text-xs font-semibold text-emerald-600 flex gap-2 justify-center">
+                            <span class="bg-white px-2 py-1 rounded shadow-sm">Câu 1-10: 10đ</span>
+                            <span class="bg-white px-2 py-1 rounded shadow-sm">Câu 11-15: 20đ</span>
+                            <span class="bg-white px-2 py-1 rounded shadow-sm">Câu 16-21: 30đ</span>
+                        </div>
+                    </div>
+
+                    <form id="login-form" onsubmit="startGame(event)" class="space-y-4 relative z-10">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Họ và tên</label>
+                            <input type="text" id="player-name" required class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-emerald-100 focus:border-emerald-500 outline-none transition bg-slate-50 font-medium" placeholder="Nhập họ tên em...">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-1">Lớp</label>
+                                <input type="text" id="player-class" required class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-emerald-100 focus:border-emerald-500 outline-none transition bg-slate-50 font-medium" placeholder="VD: 11A1">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-1">Tổ/Nhóm</label>
+                                <input type="text" id="player-group" required class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-emerald-100 focus:border-emerald-500 outline-none transition bg-slate-50 font-medium" placeholder="VD: Tổ 1">
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full mt-6 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-black py-4 px-4 rounded-xl shadow-lg shadow-emerald-200 transition-all active:scale-95 text-lg uppercase tracking-wider">
+                            Bắt Đầu Giải Mã
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="screen-game" class="absolute inset-0 flex flex-col hidden bg-white z-20">
+                
+                <!-- Player Info Bar -->
+                <div class="bg-emerald-50 px-6 py-3 border-b border-emerald-100 flex justify-between items-center text-sm font-medium text-emerald-800 shadow-sm">
+                    <div class="flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                        </svg>
+                        <span id="display-name" class="font-bold"></span> (<span id="display-class"></span> - <span id="display-group"></span>)
+                    </div>
+                    <div class="bg-white px-3 py-1 rounded-full shadow-sm font-black text-emerald-600 border border-emerald-100">
+                        Điểm: <span id="display-score" class="text-lg">0</span>
+                    </div>
+                </div>
+
+                <!-- Secret Message Board -->
+                <div class="bg-white p-4 border-b border-slate-100 shadow-sm z-10">
+                    <h3 class="text-center text-xs font-black text-emerald-600 uppercase tracking-widest mb-3 flex items-center justify-center gap-2">
+                        <span>🌱</span> Tiến độ Mật Thư <span>🌱</span>
+                    </h3>
+                    <div id="secret-board" class="flex flex-wrap justify-center gap-1.5 px-2">
+                        <!-- Letters generated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Question Area -->
+                <div class="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar flex flex-col bg-slate-50">
+                    <div class="max-w-3xl w-full mx-auto pb-8">
+                        <div class="flex justify-between items-center mb-4 bg-white p-3 rounded-xl shadow-sm border border-slate-100">
+                            <span class="bg-emerald-100 text-emerald-800 text-sm font-black px-3 py-1 rounded-lg uppercase tracking-wide" id="question-points-badge">10 Điểm</span>
+                            <span class="text-sm font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-lg">Câu <span id="current-q-num" class="text-slate-700">1</span>/21</span>
+                        </div>
+                        
+                        <!-- Bắt đầu: Thanh đếm thời gian -->
+                        <div class="mb-4 bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm font-bold text-slate-600 flex items-center gap-1">⏱ Thời gian: <span id="time-text" class="text-red-500 font-black text-lg">30s</span></span>
+                                <span class="text-sm font-bold text-emerald-600">Điểm hiện tại: <span id="current-possible-score">10</span>đ</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-3 shadow-inner overflow-hidden">
+                                <div id="time-progress" class="bg-emerald-500 h-3 rounded-full transition-all ease-linear" style="width: 100%"></div>
+                            </div>
+                        </div>
+                        <!-- Kết thúc: Thanh đếm thời gian -->
+
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-6">
+                            <h2 id="question-text" class="text-lg md:text-xl font-bold text-slate-800 leading-relaxed">
+                                <!-- Question text here -->
+                            </h2>
+                        </div>
+
+                        <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Options here -->
+                        </div>
+
+                        <!-- Feedback Area -->
+                        <div id="feedback-area" class="mt-8 text-center hidden min-h-[60px] flex-col items-center">
+                            <div id="feedback-text" class="text-lg font-bold p-4 rounded-xl shadow-sm w-full max-w-md"></div>
+                            
+                            <button id="next-btn" onclick="nextQuestion()" class="mt-6 bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-8 rounded-xl shadow-lg transition-all hover:-translate-y-1 hidden w-full max-w-xs uppercase tracking-wide">
+                                Câu Tiếp Theo
+                            </button>
+                            <button id="finish-btn" onclick="showGuessScreen()" class="mt-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-black py-3 px-8 rounded-xl shadow-lg shadow-emerald-200 transition-all hover:-translate-y-1 hidden w-full max-w-xs uppercase tracking-wide">
+                                Giải Mã Cuối Cùng
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="screen-guess" class="absolute inset-0 hidden flex-col items-center justify-center p-6 bg-emerald-50 z-30 overflow-y-auto">
+                <div class="max-w-2xl w-full bg-white p-8 md:p-10 rounded-3xl shadow-2xl border-2 border-emerald-200 text-center relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 to-green-500"></div>
+                    
+                    <h2 class="text-3xl font-black text-emerald-700 mb-2">Thử Thách Cuối Cùng!</h2>
+                    <p class="text-slate-600 font-medium mb-8">Dựa vào các mảnh ghép em đã thu thập được, hãy ráp lại thành một thông điệp hoàn chỉnh.</p>
+                    
+                    <div class="bg-emerald-50 p-6 rounded-2xl border border-emerald-100 mb-8 inline-block shadow-inner">
+                        <div id="guess-secret-board" class="flex flex-wrap justify-center gap-2">
+                            <!-- Final string -->
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-base font-bold text-slate-700 mb-3 text-left">Nhập thông điệp (Tiếng Việt có dấu):</label>
+                        <input type="text" id="final-guess-input" class="w-full px-5 py-4 text-lg border-2 border-emerald-200 rounded-xl focus:ring-4 focus:ring-emerald-100 focus:border-emerald-500 outline-none transition bg-white font-bold text-emerald-900 text-center uppercase tracking-wide" placeholder="">
+                    </div>
+
+                    <div id="guess-buttons" class="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+                        <button onclick="checkAndFinish()" class="flex-1 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-black py-4 px-6 rounded-xl shadow-lg shadow-emerald-200 transition-all active:scale-95 text-lg uppercase tracking-wider">
+                            KIỂM TRA VÀ XEM BẢNG XẾP HẠNG
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="screen-leaderboard" class="absolute inset-0 hidden flex-col bg-slate-50 z-40">
+                <div class="p-4 md:p-8 flex-1 overflow-y-auto custom-scrollbar">
+                    
+                    <div class="text-center mb-10 mt-4 fade-in">
+                        <div class="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4 shadow-inner">
+                            <span class="text-4xl">🏆</span>
+                        </div>
+                        <h2 class="text-3xl font-black text-emerald-700 mb-2">Hoàn Thành Trò Chơi!</h2>
+                        <p id="final-score-msg" class="text-lg text-slate-600 font-medium">Chúc mừng <span id="final-name" class="font-bold text-slate-800"></span>, em đã đạt được <span id="final-score" class="text-emerald-600 font-black text-2xl"></span> điểm.</p>
+                        
+                        <div class="mt-8 inline-block bg-white p-6 rounded-2xl shadow-md border border-emerald-100 relative overflow-hidden">
+                            <div class="absolute top-0 right-0 p-2 opacity-10">🌱</div>
+                            <h3 class="text-xs font-black text-emerald-500 uppercase tracking-widest mb-4">Thông Điệp Đã Giải Mã</h3>
+                            <div class="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-green-500 tracking-wide">
+                                QUANG HỢP KIẾN TẠO SỰ SỐNG
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Leaderboard Tabs -->
+                    <div class="max-w-4xl mx-auto fade-in" style="animation-delay: 0.2s;">
+                        <div class="flex border-b-2 border-slate-200 mb-6 bg-white rounded-t-xl overflow-hidden">
+                            <button onclick="switchTab('ranking')" id="tab-ranking" class="flex-1 py-4 border-b-4 border-emerald-500 font-black text-emerald-600 bg-emerald-50/50 transition-colors">BẢNG XẾP HẠNG</button>
+                            <button onclick="switchTab('stats')" id="tab-stats" class="flex-1 py-4 border-b-4 border-transparent font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors">THỐNG KÊ CÂU HỎI</button>
+                        </div>
+
+                        <!-- Tab Content: Ranking -->
+                        <div id="content-ranking" class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
+                                        <th class="p-4 font-black w-16 text-center">Hạng</th>
+                                        <th class="p-4 font-black">Họ và Tên</th>
+                                        <th class="p-4 font-black text-center">Lớp</th>
+                                        <th class="p-4 font-black text-center hidden md:table-cell">Tổ/Nhóm</th>
+                                        <th class="p-4 font-black text-center text-emerald-700">Điểm</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leaderboard-body" class="divide-y divide-slate-100 text-sm">
+                                    <!-- Rows -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Tab Content: Statistics -->
+                        <div id="content-stats" class="hidden bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden">
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left border-collapse min-w-[600px]">
+                                    <thead>
+                                        <tr class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
+                                            <th class="p-4 font-black w-16 text-center">Câu</th>
+                                            <th class="p-4 font-black">Nội dung tóm tắt</th>
+                                            <th class="p-4 font-black text-center w-28">Tỉ lệ Đúng</th>
+                                            <th class="p-4 font-black text-center w-28">Số lượt làm</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="stats-body" class="divide-y divide-slate-100 text-sm">
+                                        <!-- Rows -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                    
+                    <div class="text-center mt-10 pb-8 fade-in flex flex-col sm:flex-row justify-center items-center gap-4" style="animation-delay: 0.4s;">
+                        <button onclick="resetToStart()" class="bg-white border-2 border-slate-200 hover:border-emerald-400 hover:text-emerald-700 text-slate-600 font-bold py-3 px-8 rounded-xl shadow-sm transition-all hover:-translate-y-1 w-full sm:w-auto">Chơi Lại Từ Đầu</button>
+                        <button onclick="showAdminLogin()" class="bg-red-50 border-2 border-red-200 hover:border-red-400 hover:text-red-700 text-red-600 font-bold py-3 px-8 rounded-xl shadow-sm transition-all hover:-translate-y-1 w-full sm:w-auto flex items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            Xóa Bảng Xếp Hạng
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Alert Modal -->
+    <div id="alert-modal" class="modal">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl max-w-sm w-full mx-4 text-center transform scale-95 transition-transform duration-200 border-2 border-emerald-100" id="alert-content">
+            <div id="alert-icon" class="text-4xl mb-4">🔔</div>
+            <h3 id="alert-title" class="text-2xl font-black text-slate-800 mb-2">Thông báo</h3>
+            <p id="alert-message" class="text-slate-600 mb-8 font-medium leading-relaxed"></p>
+            <button onclick="closeAlert()" class="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-md w-full">Đóng</button>
+        </div>
+    </div>
+
+    <!-- Admin Login Modal -->
+    <div id="admin-modal" class="modal">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl max-w-sm w-full mx-4 transform scale-95 transition-transform duration-200 border-2 border-slate-100" id="admin-content">
+            <h3 class="text-xl font-black text-slate-800 mb-4 border-b border-slate-100 pb-3 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                Quản Trị Hệ Thống
+            </h3>
+            <p class="text-sm font-medium text-slate-500 mb-5">Nhập mật khẩu để xoá toàn bộ dữ liệu bảng xếp hạng và thống kê.</p>
+            <input type="password" id="admin-password" class="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-red-100 focus:border-red-500 outline-none transition mb-6 font-medium" placeholder="Nhập mật khẩu...">
+            <div class="flex gap-3">
+                <button onclick="closeAdminLogin()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 px-4 rounded-xl transition-colors">Hủy</button>
+                <button onclick="clearLeaderboard()" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-xl shadow-md shadow-red-200 transition-colors">Xoá Dữ Liệu</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const questions = [
+            {
+                q: "Quang hợp ở thực vật là quá trình",
+                options: [
+                    { letter: "L", text: "phân giải chất hữu cơ, giải phóng năng lượng cho tế bào." },
+                    { letter: "Q", text: "sử dụng năng lượng ánh sáng để tổng hợp chất hữu cơ từ các chất vô cơ." },
+                    { letter: "P", text: "hấp thụ oxygen để phân giải glucose thành carbon dioxide và nước." },
+                    { letter: "S", text: "chuyen hóa chất hữu cơ thành các chất khoáng cung cấp cho cây." }
+                ],
+                correct: "Q", wordGroup: 1 // QUANG
+            },
+            {
+                q: "Bào quan chủ yếu thực hiện quá trình quang hợp ở tế bào thực vật là",
+                options: [
+                    { letter: "I", text: "ti thể." },
+                    { letter: "K", text: "ribosome." },
+                    { letter: "U", text: "lục lạp." },
+                    { letter: "V", text: "bộ máy Golgi." }
+                ],
+                correct: "U", wordGroup: 1
+            },
+            {
+                q: "Sắc tố trực tiếp tham gia chuyển hóa năng lượng ánh sáng thành năng lượng hóa học trong trung tâm phản ứng của hệ quang hợp là",
+                options: [
+                    { letter: "A", text: "diệp lục a." },
+                    { letter: "B", text: "diệp lục b." },
+                    { letter: "C", text: "carotenoid." },
+                    { letter: "D", text: "xanthophyll." }
+                ],
+                correct: "A", wordGroup: 1
+            },
+            {
+                q: "Sản phẩm ổn định đầu tiên của chu trình Calvin ở thực vật C3 là",
+                options: [
+                    { letter: "G", text: "pyruvate." },
+                    { letter: "H", text: "glucose." },
+                    { letter: "M", text: "oxaloacetate (OAA)." },
+                    { letter: "N", text: "3-phosphoglycerate (3-PGA)." }
+                ],
+                correct: "N", wordGroup: 1
+            },
+            {
+                q: "Nhóm thực vật nào sau đây có cơ chế cố định CO₂ ban đầu tạo hợp chất 4 carbon và thường có sự phân chia không gian giữa quá trình cố định CO₂ ban đầu với chu trình Calvin?",
+                options: [
+                    { letter: "E", text: "Chỉ có thực vật CAM." },
+                    { letter: "H", text: "Chỉ có thực vật C3." },
+                    { letter: "G", text: "Thực vật C4." },
+                    { letter: "R", text: "Tất cả thực vật C3, C4 và CAM." }
+                ],
+                correct: "G", wordGroup: 1
+            },
+            {
+                q: "Vai trò chủ yếu của pha sáng trong quang hợp là",
+                options: [
+                    { letter: "K", text: "cố định trực tiếp CO₂ để tạo glucose mà không cần chất trung gian." },
+                    { letter: "D", text: "phân giải hoàn toàn glucose thành CO₂ và nước." },
+                    { letter: "L", text: "sử dụng ATP để tổng hợp protein trong lục lạp." },
+                    { letter: "H", text: "chuyển năng lượng ánh sáng thành ATP và NADPH, đồng thời giải phóng O₂ từ nước." }
+                ],
+                correct: "H", wordGroup: 2 // HỢP
+            },
+            {
+                q: "Vì sao nói pha tối của quang hợp không trực tiếp cần ánh sáng?",
+                options: [
+                    { letter: "A", text: "Vì pha tối không sử dụng bất kì sản phẩm nào của pha sáng." },
+                    { letter: "Ơ", text: "Vì các phản ứng cố định CO₂ sử dụng ATP và NADPH do pha sáng cung cấp, chứ không trực tiếp sử dụng photon ánh sáng." },
+                    { letter: "E", text: "Vì pha tối chỉ diễn ra vào ban đêm ở tất cả các loài thực vật." },
+                    { letter: "Ô", text: "Vì pha tối diễn ra ngoài lục lạp nên không chịu ảnh hưởng của ánh sáng." }
+                ],
+                correct: "Ơ", wordGroup: 2
+            },
+            {
+                q: "Thực vật C4 hạn sống trong điều kiện khí hậu….",
+                options: [
+                    { letter: "U", text: "Tối ưu thuận lợi về mọi mặt." },
+                    { letter: "G", text: "Khắc nghiệt cần mở khí khổng vào ban đêm." },
+                    { letter: "I", text: "Nồng độ O2 cao, nhiệt độ ổn định, ôn hòa." },
+                    { letter: "P", text: "Nhiệt độ cao, nồng độ CO2 thấp." }
+                ],
+                correct: "P", wordGroup: 2
+            },
+            {
+                q: "Đặc điểm thích nghi nổi bật của thực vật CAM giúp hạn chế mất nước là",
+                options: [
+                    { letter: "K", text: "khí khổng thường mở vào ban đêm để hấp thụ CO₂ và đóng vào ban ngày." },
+                    { letter: "I", text: "khí khổng luôn mở suốt ngày đêm." },
+                    { letter: "O", text: "khí khổng chỉ mở vào ban ngày khi nhiệt độ cao." },
+                    { letter: "S", text: "không hấp thụ CO₂ từ môi trường." }
+                ],
+                correct: "K", wordGroup: 3 // KIẾN
+            },
+            {
+                q: "Trong giới hạn thích hợp, khi tăng cường độ ánh sáng từ thấp lên cao, cường độ quang hợp sẽ",
+                options: [
+                    { letter: "A", text: "Giảm nhanh." },
+                    { letter: "O", text: "Tăng theo không giới hạn." },
+                    { letter: "I", text: "Thường tăng rồi ổn định." },
+                    { letter: "Y", text: "Không đổi." }
+                ],
+                correct: "I", wordGroup: 3
+            },
+            {
+                q: "Một cây xanh được đặt trong điều kiện có ánh sáng đầy đủ nhưng nồng độ CO₂ trong môi trường rất thấp. Nếu các nhân tố khác không đổi, cường độ quang hợp của cây có xu hướng như thế nào?",
+                options: [
+                    { letter: "V", text: "Luôn đạt cực đại vì ánh sáng đầy đủ." },
+                    { letter: "Ê", text: "Giảm do thiếu nguyên liệu cho quá trình cố định carbon." },
+                    { letter: "E", text: "Không thay đổi vì CO₂ không tham gia quang hợp." },
+                    { letter: "O", text: "Tăng vô hạn do cây tăng cường hấp thụ ánh sáng." }
+                ],
+                correct: "Ê", wordGroup: 3
+            },
+            {
+                q: "Khi trồng rau trong nhà kính vào mùa đông, người trồng bổ sung hệ thống đèn LED có phổ ánh sáng phù hợp với quang hợp. Tác dụng chính của biện pháp này là",
+                options: [
+                    { letter: "A", text: "thay thế hoàn toàn vai trò của nước và CO₂." },
+                    { letter: "M", text: "làm cây không cần hấp thụ chất khoáng." },
+                    { letter: "N", text: "cung cấp nguồn ánh sáng thích hợp, góp phần tăng cường quang hợp khi ánh sáng tự nhiên hạn chế." },
+                    { letter: "R", text: "bảo đảm cường độ quang hợp luôn đạt cực đại trong mọi điều kiện." }
+                ],
+                correct: "N", wordGroup: 3
+            },
+            {
+                q: "Một cây trồng được cung cấp đủ ánh sáng và CO₂ nhưng bị thiếu nước kéo dài. Nhận định nào sau đây giải thích hợp lí nhất về sự suy giảm quang hợp?",
+                options: [
+                    { letter: "T", text: "Thiếu nước có thể làm khí khổng đóng, hạn chế CO₂ khuếch tán vào lá; đồng thời ảnh hưởng đến trạng thái sinh lí của tế bào." },
+                    { letter: "G", text: "Thiếu nước làm khí khổng mở rộng liên tục, khiến CO₂ đi vào lá quá nhiều." },
+                    { letter: "L", text: "Nước chỉ có vai trò vận chuyển chất khoáng nên không liên quan đến quang hợp." },
+                    { letter: "S", text: "Thiếu nước làm chu trình Calvin tự động tăng tốc để bù lại lượng nước đã mất." }
+                ],
+                correct: "T", wordGroup: 4 // TẠO
+            },
+            {
+                q: "Hai cây cùng loài được trồng trong điều kiện tương tự. Cây thứ nhất có diện tích lá khỏe mạnh lớn hơn cây thứ hai. Nếu các điều kiện khác phù hợp, cây thứ nhất có khả năng tích lũy chất hữu cơ nhiều hơn chủ yếu vì",
+                options: [
+                    { letter: "J", text: "diện tích lá lớn luôn làm cường độ quang hợp của từng đơn vị diện tích lá tăng." },
+                    { letter: "E", text: "lá lớn giúp cây không cần hô hấp." },
+                    { letter: "O", text: "diện tích lá lớn làm giảm hoàn toàn sự thoát hơi nước." },
+                    { letter: "A", text: "tổng diện tích lá tiếp nhận ánh sáng và thực hiện quang hợp có thể lớn hơn." }
+                ],
+                correct: "A", wordGroup: 4
+            },
+            {
+                q: "Một học sinh tiến hành thí nghiệm trên cùng một loài cây và thu được số liệu sau:<br><br><table class='w-full text-center border-collapse border border-slate-300 text-sm mt-2 mb-2'><thead><tr class='bg-slate-100'><th class='border border-slate-300 p-2'>Nhiệt độ (°C)</th><th class='border border-slate-300 p-2'>Cường độ QH tương đối</th></tr></thead><tbody><tr><td class='border border-slate-300 p-1'>15</td><td class='border border-slate-300 p-1'>40</td></tr><tr><td class='border border-slate-300 p-1'>25</td><td class='border border-slate-300 p-1'>75</td></tr><tr><td class='border border-slate-300 p-1'>35</td><td class='border border-slate-300 p-1'>100</td></tr><tr><td class='border border-slate-300 p-1'>45</td><td class='border border-slate-300 p-1'>30</td></tr></tbody></table>Kết luận phù hợp nhất từ số liệu trên là",
+                options: [
+                    { letter: "A", text: "Nhiệt độ càng tăng thì cường độ quang hợp luôn tăng." },
+                    { letter: "O", text: "Trong điều kiện thí nghiệm, quang hợp đạt giá trị cao nhất ở 35°C; nhiệt độ quá cao có thể làm giảm cường độ quang hợp." },
+                    { letter: "I", text: "Nhiệt độ không ảnh hưởng đến quang hợp." },
+                    { letter: "U", text: "Mọi loài thực vật đều có nhiệt độ tối ưu cho quang hợp là 35°C." }
+                ],
+                correct: "O", wordGroup: 4
+            },
+            {
+                q: "Một ruộng rau được bón nhiều phân đạm nhưng thiếu nước và có mật độ trồng quá dày. Biện pháp nào sau đây có khả năng cải thiện năng suất hợp lí nhất?",
+                options: [
+                    { letter: "K", text: "Tiếp tục tăng lượng phân đạm để cây phát triển nhanh hơn." },
+                    { letter: "Q", text: "Tăng mật độ trồng để tận dụng tối đa diện tích đất." },
+                    { letter: "S", text: "Điều chỉnh mật độ trồng phù hợp, bảo đảm nước và bón phân cân đối theo nhu cầu của cây." },
+                    { letter: "H", text: "Che kín toàn bộ ruộng để giảm mất nước và ngăn ánh sáng chiếu vào lá." }
+                ],
+                correct: "S", wordGroup: 5 // SỰ
+            },
+            {
+                q: "Một nhà kính trồng rau có cường độ chiếu sáng thấp vào những ngày nhiều mây. Người trồng lắp đèn LED, nhưng sau đó nhận thấy tăng thêm thời gian chiếu sáng không làm năng suất tăng rõ rệt. Giải thích nào hợp lí nhất?",
+                options: [
+                    { letter: "A", text: "Ánh sáng không có vai trò trong quang hợp của cây trồng." },
+                    { letter: "O", text: "Khi đã sử dụng đèn LED, CO₂ và nước không còn ảnh hưởng đến quang hợp." },
+                    { letter: "I", text: "Tăng thời gian chiếu sáng luôn làm cây giảm quang hợp." },
+                    { letter: "Ư", text: "Một nhân tố khác như CO₂, nhiệt độ, nước hoặc chất khoáng có thể đang giới hạn quang hợp; hiệu quả còn phụ thuộc chế độ chiếu sáng phù hợp." }
+                ],
+                correct: "Ư", wordGroup: 5
+            },
+            {
+                q: "Xét hai nhóm thực vật được trồng trong điều kiện nóng, ánh sáng mạnh và nguồn nước hạn chế:<br>- Nhóm X: cây ngô.<br>- Nhóm Y: cây xương rồng.<br>Nhận định nào sau đây đúng nhất?",
+                options: [
+                    { letter: "S", text: "Ngô là thực vật C4, xương rồng là thực vật CAM; cả hai có đặc điểm thích nghi giúp hạn chế những bất lợi trong điều kiện khô nóng, nhưng cơ chế phân chia quá trình cố định CO₂ khác nhau." },
+                    { letter: "Q", text: "Ngô là thực vật CAM, xương rồng là thực vật C3." },
+                    { letter: "T", text: "Cả hai đều cố định CO₂ ban đầu theo con đường C3." },
+                    { letter: "F", text: "Cả hai đều chỉ mở khí khổng vào ban đêm." }
+                ],
+                correct: "S", wordGroup: 6 // SỐNG
+            },
+            {
+                q: "Một cơ sở sản xuất muốn tăng năng suất cây trồng bằng cách kết hợp các biện pháp kĩ thuật. Phương án nào có cơ sở khoa học đầy đủ nhất?",
+                options: [
+                    { letter: "Ơ", text: "Chỉ tăng lượng phân bón vì dinh dưỡng là yếu tố duy nhất quyết định năng suất." },
+                    { letter: "Ê", text: "Chỉ tăng cường độ chiếu sáng đến mức cao nhất có thể, không cần quan tâm đến nhiệt độ." },
+                    { letter: "Ô", text: "Bố trí mật độ cây hợp lí, bảo đảm nước và dinh dưỡng cân đối, điều chỉnh ánh sáng, CO₂ và nhiệt độ phù hợp với đặc điểm từng loài." },
+                    { letter: "O", text: "Tăng nhiệt độ và nồng độ CO₂ liên tục vì hai yếu tố này luôn làm quang hợp tăng." }
+                ],
+                correct: "Ô", wordGroup: 6
+            },
+            {
+                q: "Pha sáng của quá trình quang hợp ở thực vật diễn ra chủ yếu tại vị trí nào trong lục lạp?",
+                options: [
+                    { letter: "G", text: "Chất nền lục lạp." },
+                    { letter: "N", text: "Màng Thylakoid." },
+                    { letter: "M", text: "Màng ngoài lục lạp." },
+                    { letter: "P", text: "Khoang gian màng của lục lạp." }
+                ],
+                correct: "N", wordGroup: 6
+            },
+            {
+                q: "Phân tử oxygen trong quang hợp có nguồn gốc từ?",
+                options: [
+                    { letter: "K", text: "Từ nước do pha tối tạo ra." },
+                    { letter: "L", text: "Từ CO2 do pha sáng tạo ra" },
+                    { letter: "M", text: "Từ CO2 do pha tối tạo ra" },
+                    { letter: "G", text: "Từ quá trình quang phân li nước ở pha sáng." }
+                ],
+                correct: "G", wordGroup: 6
+            }
+        ];
+
+        let currentPlayer = { name: '', class: '', group: '', score: 0 };
+        let currentQuestionIndex = 0;
+        let hasAnsweredCurrent = false;
+        let playerLetters = new Array(questions.length).fill(null);
+
+        // Biến cho thanh thời gian
+        let timerInterval;
+        let timeLeft = 30;
+        const MAX_TIME = 30;
+        let currentBaseScore = 0;
+
+        const ADMIN_PASSWORD = "Giaovien123";
+        const STORAGE_KEY_LEADERBOARD = "GiaiMatThu_Leaderboard_V2";
+        const STORAGE_KEY_STATS = "GiaiMatThu_Stats_V2";
+        
+        const CORRECT_PHRASE_NORMALIZED = "quang hợp kiến tạo sự sống";
+
+        // Hệ thống âm thanh (Sử dụng Tone.js)
+        let synthCorrect, synthIncorrect, synthVictory;
+
+        async function initAudio() {
+            await Tone.start();
+            if (!synthCorrect) {
+                synthCorrect = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: "triangle" },
+                    envelope: { attack: 0.05, decay: 0.1, sustain: 0.3, release: 1 }
+                }).toDestination();
+                synthCorrect.volume.value = -5; // Giảm âm lượng
+            }
+            if (!synthIncorrect) {
+                synthIncorrect = new Tone.Synth({
+                    oscillator: { type: "sawtooth" },
+                    envelope: { attack: 0.1, decay: 0.2, sustain: 0.5, release: 0.5 }
+                }).toDestination();
+                synthIncorrect.volume.value = -10;
+            }
+            if (!synthVictory) {
+                synthVictory = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: "sine" },
+                    envelope: { attack: 0.1, decay: 0.2, sustain: 0.8, release: 2 }
+                }).toDestination();
+                synthVictory.volume.value = -2;
+            }
+        }
+
+        function playCorrect() {
+            if(synthCorrect) {
+                const now = Tone.now();
+                synthCorrect.triggerAttackRelease(["E4", "G4", "C5"], "8n", now);
+            }
+        }
+
+        function playIncorrect() {
+            if(synthIncorrect) {
+                synthIncorrect.triggerAttackRelease("D3", "4n");
+            }
+        }
+        
+        function playTimeout() {
+            if(synthIncorrect) {
+                synthIncorrect.triggerAttackRelease("A2", "2n");
+            }
+        }
+
+        function playVictory() {
+            if(synthVictory) {
+                const now = Tone.now();
+                synthVictory.triggerAttackRelease(["C4", "E4", "G4", "C5", "E5"], "2n", now);
+            }
+        }
+
+        function initApp() {
+            initStorage();
+            generateSecretBoard('secret-board');
+            createFloatingLeaves();
+        }
+
+        function createFloatingLeaves() {
+            const container = document.getElementById('leaves-container');
+            const numLeaves = 15;
+            for(let i=0; i<numLeaves; i++) {
+                let leaf = document.createElement('div');
+                leaf.className = 'leaf';
+                leaf.style.left = `${Math.random() * 100}vw`;
+                leaf.style.width = `${Math.random() * 30 + 20}px`;
+                leaf.style.height = leaf.style.width;
+                leaf.style.animationDuration = `${Math.random() * 10 + 10}s`;
+                leaf.style.animationDelay = `${Math.random() * 10}s`;
+                container.appendChild(leaf);
+            }
+        }
+
+        function initStorage() {
+            if (!localStorage.getItem(STORAGE_KEY_LEADERBOARD)) {
+                localStorage.setItem(STORAGE_KEY_LEADERBOARD, JSON.stringify([]));
+            }
+            if (!localStorage.getItem(STORAGE_KEY_STATS)) {
+                const initialStats = questions.map((_, i) => ({ q: i, correct: 0, total: 0 }));
+                localStorage.setItem(STORAGE_KEY_STATS, JSON.stringify(initialStats));
+            }
+        }
+
+        function showScreen(screenId) {
+            ['screen-start', 'screen-game', 'screen-guess', 'screen-leaderboard'].forEach(id => {
+                const el = document.getElementById(id);
+                if (id === screenId) {
+                    el.classList.remove('hidden');
+                    el.classList.add('flex');
+                } else {
+                    el.classList.add('hidden');
+                    el.classList.remove('flex');
+                }
+            });
+        }
+
+        function startGame(e) {
+            e.preventDefault();
+            initAudio(); // Khởi tạo âm thanh ngay khi người dùng tương tác (bấm bắt đầu)
+            const name = document.getElementById('player-name').value.trim();
+            const cls = document.getElementById('player-class').value.trim();
+            const group = document.getElementById('player-group').value.trim();
+
+            if (!name || !cls || !group) {
+                showAlert('Lỗi', 'Vui lòng nhập đầy đủ thông tin để bắt đầu!', '❌');
+                return;
+            }
+
+            currentPlayer = { name, class: cls, group, score: 0 };
+            currentQuestionIndex = 0;
+            playerLetters = new Array(questions.length).fill(null);
+            
+            // Update UI
+            document.getElementById('display-name').textContent = name;
+            document.getElementById('display-class').textContent = cls;
+            document.getElementById('display-group').textContent = group;
+            updateScoreUI();
+            
+            // Reset board
+            generateSecretBoard('secret-board');
+
+            showScreen('screen-game');
+            loadQuestion();
+        }
+
+        function getPointsForQuestion(index) {
+            const num = index + 1;
+            if (num >= 1 && num <= 10) return 10;
+            if (num >= 11 && num <= 15) return 20;
+            if (num >= 16 && num <= 21) return 30;
+            return 0;
+        }
+
+        function loadQuestion() {
+            const q = questions[currentQuestionIndex];
+            hasAnsweredCurrent = false;
+            currentBaseScore = getPointsForQuestion(currentQuestionIndex);
+
+            document.getElementById('current-q-num').textContent = currentQuestionIndex + 1;
+            document.getElementById('question-text').innerHTML = q.q;
+            document.getElementById('question-points-badge').textContent = `${currentBaseScore} Điểm (Tối đa)`;
+            
+            const feedbackArea = document.getElementById('feedback-area');
+            feedbackArea.classList.add('hidden');
+            document.getElementById('next-btn').classList.add('hidden');
+            document.getElementById('finish-btn').classList.add('hidden');
+
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+
+            q.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = `option-btn w-full text-left p-4 rounded-xl border-2 border-slate-200 bg-white hover:bg-emerald-50 transition-all font-semibold text-slate-700 shadow-sm flex items-start gap-3`;
+                btn.innerHTML = `<span class="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg font-black border border-slate-300 min-w-[40px] text-center shrink-0 shadow-inner">${opt.letter}</span> <span class="pt-1">${opt.text}</span>`;
+                btn.onclick = () => selectOption(opt.letter, btn);
+                optionsContainer.appendChild(btn);
+            });
+            
+            // Highlight current letter box
+            const letters = document.querySelectorAll('#secret-board .secret-letter');
+            letters.forEach((el, i) => {
+                if(i === currentQuestionIndex) {
+                    el.style.borderColor = '#10b981'; // Emerald 500
+                    el.style.boxShadow = '0 0 0 4px rgba(16, 185, 129, 0.2)';
+                } else if (!el.classList.contains('revealed') && !el.classList.contains('missed')) {
+                    el.style.borderColor = '#cbd5e1';
+                    el.style.boxShadow = 'none';
+                }
+            });
+
+            // Khởi động thời gian
+            startTimer();
+        }
+
+        // --- HÀM XỬ LÝ THỜI GIAN VÀ ĐIỂM SỐ DYNAMIC ---
+        function startTimer() {
+            clearInterval(timerInterval);
+            timeLeft = MAX_TIME;
+            updateTimerUI();
+
+            timerInterval = setInterval(() => {
+                timeLeft -= 0.1; // Cập nhật mượt mỗi 100ms
+                if (timeLeft <= 0) {
+                    timeLeft = 0;
+                    clearInterval(timerInterval);
+                    handleTimeOut();
+                }
+                updateTimerUI();
+            }, 100);
+        }
+
+        function updateTimerUI() {
+            document.getElementById('time-text').textContent = Math.ceil(timeLeft) + 's';
+            const percent = (timeLeft / MAX_TIME) * 100;
+            const progressEl = document.getElementById('time-progress');
+            progressEl.style.width = percent + '%';
+            
+            // Thay đổi màu sắc thanh thời gian
+            if (percent > 50) progressEl.className = 'bg-emerald-500 h-3 rounded-full';
+            else if (percent > 20) progressEl.className = 'bg-yellow-400 h-3 rounded-full';
+            else progressEl.className = 'bg-red-500 h-3 rounded-full';
+
+            // Cập nhật điểm số giảm dần
+            const dynamicScore = Math.max(1, Math.round((currentBaseScore * timeLeft) / MAX_TIME));
+            document.getElementById('current-possible-score').textContent = timeLeft <= 0 ? 0 : dynamicScore;
+        }
+
+        function selectOption(selectedLetter, btnElement) {
+            if (hasAnsweredCurrent) return;
+            hasAnsweredCurrent = true;
+
+            clearInterval(timerInterval); // Dừng đếm thời gian
+
+            const q = questions[currentQuestionIndex];
+            const isCorrect = selectedLetter === q.correct;
+            
+            // Vô hiệu hoá tất cả các nút
+            const allBtns = document.querySelectorAll('.option-btn');
+            allBtns.forEach(b => {
+                b.disabled = true;
+                b.classList.add('opacity-70', 'cursor-not-allowed');
+                b.classList.remove('hover:bg-emerald-50');
+            });
+
+            const feedbackArea = document.getElementById('feedback-area');
+            const feedbackText = document.getElementById('feedback-text');
+            feedbackArea.classList.remove('hidden');
+
+            updateStats(currentQuestionIndex, isCorrect);
+
+            if (isCorrect) {
+                playCorrect(); // Phát âm thanh đúng
+                btnElement.classList.replace('border-slate-200', 'border-emerald-500');
+                btnElement.classList.replace('bg-white', 'bg-emerald-50');
+                
+                // Tính toán điểm số nhận được dựa trên thời gian còn lại
+                const pointsEarned = Math.max(1, Math.round((currentBaseScore * timeLeft) / MAX_TIME));
+                
+                feedbackText.innerHTML = `✨ <b>Chính xác!</b> Em đã thu thập được 1 mảnh ghép và <b>+${pointsEarned} điểm</b>.`;
+                feedbackText.className = "text-lg font-medium p-4 rounded-xl w-full max-w-md bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-inner";
+                
+                currentPlayer.score += pointsEarned;
+                updateScoreUI();
+
+                revealLetter('secret-board', currentQuestionIndex, selectedLetter, true);
+                playerLetters[currentQuestionIndex] = selectedLetter;
+            } else {
+                playIncorrect(); // Phát âm thanh sai
+                btnElement.classList.replace('border-slate-200', 'border-red-400');
+                btnElement.classList.replace('bg-white', 'bg-red-50');
+                
+                // Chỉ báo sai, không hiện đáp án đúng
+                feedbackText.innerHTML = "💦 <b>Chưa chính xác.</b> Mảnh ghép này đã bị vụt mất.";
+                feedbackText.className = "text-lg font-medium p-4 rounded-xl w-full max-w-md bg-red-100 text-red-800 border border-red-200 shadow-inner";
+                
+                revealLetter('secret-board', currentQuestionIndex, null, false); 
+            }
+
+            // Hiện nút điều hướng
+            if (currentQuestionIndex < questions.length - 1) {
+                document.getElementById('next-btn').classList.remove('hidden');
+            } else {
+                document.getElementById('finish-btn').classList.remove('hidden');
+            }
+        }
+
+        function handleTimeOut() {
+            if (hasAnsweredCurrent) return;
+            hasAnsweredCurrent = true;
+
+            playTimeout(); // Phát âm thanh hết giờ
+
+            // Vô hiệu hoá tất cả các nút
+            const allBtns = document.querySelectorAll('.option-btn');
+            allBtns.forEach(b => {
+                b.disabled = true;
+                b.classList.add('opacity-70', 'cursor-not-allowed');
+                b.classList.remove('hover:bg-emerald-50');
+            });
+
+            const feedbackArea = document.getElementById('feedback-area');
+            const feedbackText = document.getElementById('feedback-text');
+            feedbackArea.classList.remove('hidden');
+
+            updateStats(currentQuestionIndex, false);
+
+            feedbackText.innerHTML = "⏰ <b>Đã hết thời gian!</b> Mảnh ghép này đã bị vụt mất.";
+            feedbackText.className = "text-lg font-medium p-4 rounded-xl w-full max-w-md bg-slate-100 text-slate-800 border border-slate-300 shadow-inner";
+            
+            revealLetter('secret-board', currentQuestionIndex, null, false); 
+
+            if (currentQuestionIndex < questions.length - 1) {
+                document.getElementById('next-btn').classList.remove('hidden');
+            } else {
+                document.getElementById('finish-btn').classList.remove('hidden');
+            }
+        }
+
+        function updateScoreUI() {
+            document.getElementById('display-score').textContent = currentPlayer.score;
+        }
+
+        function generateSecretBoard(containerId) {
+            const board = document.getElementById(containerId);
+            board.innerHTML = '';
+            
+            let currentGroup = 1;
+
+            questions.forEach((q, i) => {
+                // Add gap if word group changes
+                if(q.wordGroup !== currentGroup) {
+                    const gap = document.createElement('div');
+                    gap.className = 'word-gap';
+                    board.appendChild(gap);
+                    currentGroup = q.wordGroup;
+                }
+
+                const el = document.createElement('div');
+                el.className = 'secret-letter';
+                el.id = `${containerId}-letter-${i}`;
+                el.textContent = '?';
+                board.appendChild(el);
+            });
+        }
+
+        function revealLetter(containerPrefix, index, letter, isCorrect) {
+            const el = document.getElementById(`${containerPrefix}-letter-${index}`);
+            if(!el) return;
+            
+            el.style.boxShadow = 'none'; // remove focus ring
+            
+            if (isCorrect && letter) {
+                el.textContent = letter;
+                el.classList.add('revealed');
+            } else {
+                el.textContent = '_'; 
+                el.classList.add('missed');
+            }
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            loadQuestion();
+        }
+
+        function showGuessScreen() {
+            generateSecretBoard('guess-secret-board');
+            // Copy state to guess board
+            playerLetters.forEach((l, i) => {
+                revealLetter('guess-secret-board', i, l, l !== null);
+            });
+            
+            document.getElementById('final-guess-input').value = '';
+            showScreen('screen-guess');
+        }
+
+        function normalizeVietnamese(str) {
+            return str.normalize('NFC').toLowerCase().replace(/\s+/g, ' ').trim();
+        }
+
+        function checkAndFinish() {
+            const inputVal = document.getElementById('final-guess-input').value;
+            const normalizedInput = normalizeVietnamese(inputVal);
+            
+            let title, msg, icon;
+            if (normalizedInput === CORRECT_PHRASE_NORMALIZED) {
+                // Cộng 30 điểm nếu đúng
+                playVictory(); // Âm thanh chiến thắng
+                currentPlayer.score += 30; 
+                title = 'Xuất sắc!';
+                msg = 'Em đã giải mã hoàn toàn chính xác thông điệp bí mật! Thưởng +30 điểm.';
+                icon = '🌟';
+            } else {
+                playIncorrect(); // Âm thanh sai
+                title = 'Hoàn thành!';
+                msg = 'Thông điệp chính xác là: QUANG HỢP KIẾN TẠO SỰ SỐNG.';
+                icon = '💡';
+            }
+
+            // Chuyển sang màn hình Bảng xếp hạng, lưu điểm và hiển thị điểm mới nhất
+            endGame();
+            
+            // Hiển thị pop-up thông báo để học sinh biết mình đoán đúng hay sai
+            showAlert(title, msg, icon);
+        }
+
+        function endGame() {
+            saveToLeaderboard(currentPlayer);
+            
+            document.getElementById('final-name').textContent = currentPlayer.name;
+            document.getElementById('final-score').textContent = currentPlayer.score;
+            
+            loadLeaderboardData();
+            loadStatsData();
+            showScreen('screen-leaderboard');
+        }
+
+        function saveToLeaderboard(player) {
+            let lb = JSON.parse(localStorage.getItem(STORAGE_KEY_LEADERBOARD) || "[]");
+            lb.push(player);
+            lb.sort((a, b) => b.score - a.score);
+            localStorage.setItem(STORAGE_KEY_LEADERBOARD, JSON.stringify(lb));
+        }
+
+        function updateStats(qIndex, isCorrect) {
+            let stats = JSON.parse(localStorage.getItem(STORAGE_KEY_STATS) || "[]");
+            if(stats[qIndex]) {
+                stats[qIndex].total += 1;
+                if(isCorrect) stats[qIndex].correct += 1;
+            }
+            localStorage.setItem(STORAGE_KEY_STATS, JSON.stringify(stats));
+        }
+
+        function loadLeaderboardData() {
+            const lb = JSON.parse(localStorage.getItem(STORAGE_KEY_LEADERBOARD) || "[]");
+            const tbody = document.getElementById('leaderboard-body');
+            tbody.innerHTML = '';
+            
+            if(lb.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-400 font-medium italic">Chưa có dữ liệu</td></tr>`;
+                return;
+            }
+
+            lb.forEach((p, i) => {
+                const isCurrent = p.name === currentPlayer.name && p.score === currentPlayer.score;
+                const rowClass = isCurrent ? "bg-emerald-50" : "hover:bg-slate-50 transition-colors";
+                
+                let rankStyle = "text-slate-500 font-bold";
+                let rankIcon = i + 1;
+                if(i === 0) { rankStyle = "text-yellow-500 text-xl font-black"; rankIcon = "🥇"; }
+                else if(i === 1) { rankStyle = "text-slate-400 text-xl font-black"; rankIcon = "🥈"; }
+                else if(i === 2) { rankStyle = "text-amber-700 text-xl font-black"; rankIcon = "🥉"; }
+
+                tbody.innerHTML += `
+                    <tr class="${rowClass}">
+                        <td class="p-4 text-center ${rankStyle}">${rankIcon}</td>
+                        <td class="p-4 ${isCurrent ? 'text-emerald-700 font-black' : 'text-slate-700 font-bold'}">${p.name}</td>
+                        <td class="p-4 text-center text-slate-600 font-medium">${p.class}</td>
+                        <td class="p-4 text-center text-slate-600 font-medium hidden md:table-cell">${p.group}</td>
+                        <td class="p-4 text-center text-emerald-600 font-black text-lg">${p.score}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function loadStatsData() {
+            const stats = JSON.parse(localStorage.getItem(STORAGE_KEY_STATS) || "[]");
+            const tbody = document.getElementById('stats-body');
+            tbody.innerHTML = '';
+
+            stats.forEach((s, i) => {
+                const qText = questions[i].q;
+                const shortQ = qText.length > 50 ? qText.substring(0, 50) + "..." : qText;
+                const rate = s.total > 0 ? Math.round((s.correct / s.total) * 100) : 0;
+                
+                let rateColor = "text-slate-600";
+                if(s.total > 0) {
+                    if (rate >= 80) rateColor = "text-emerald-600 font-black bg-emerald-50 rounded px-2 py-1 inline-block";
+                    else if (rate < 40) rateColor = "text-red-600 font-black bg-red-50 rounded px-2 py-1 inline-block";
+                    else rateColor = "text-amber-600 font-bold";
+                }
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="p-4 text-center font-black text-slate-400">${i + 1}</td>
+                        <td class="p-4 text-slate-700 font-medium truncate max-w-xs" title="${qText}">${shortQ}</td>
+                        <td class="p-4 text-center ${rateColor}">${rate}%</td>
+                        <td class="p-4 text-center text-slate-500 font-medium">${s.total}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function switchTab(tab) {
+            const btnRank = document.getElementById('tab-ranking');
+            const btnStats = document.getElementById('tab-stats');
+            const contentRank = document.getElementById('content-ranking');
+            const contentStats = document.getElementById('content-stats');
+
+            if(tab === 'ranking') {
+                contentRank.classList.remove('hidden');
+                contentStats.classList.add('hidden');
+                
+                btnRank.className = "flex-1 py-4 border-b-4 border-emerald-500 font-black text-emerald-600 bg-emerald-50/50 transition-colors";
+                btnStats.className = "flex-1 py-4 border-b-4 border-transparent font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors";
+            } else {
+                contentStats.classList.remove('hidden');
+                contentRank.classList.add('hidden');
+                
+                btnStats.className = "flex-1 py-4 border-b-4 border-emerald-500 font-black text-emerald-600 bg-emerald-50/50 transition-colors";
+                btnRank.className = "flex-1 py-4 border-b-4 border-transparent font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors";
+            }
+        }
+
+        function resetToStart() {
+            document.getElementById('login-form').reset();
+            showScreen('screen-start');
+        }
+
+        function showAlert(title, message, icon = '🔔') {
+            document.getElementById('alert-icon').textContent = icon;
+            document.getElementById('alert-title').textContent = title;
+            document.getElementById('alert-message').textContent = message;
+            
+            const modal = document.getElementById('alert-modal');
+            const content = document.getElementById('alert-content');
+            modal.classList.add('active');
+            setTimeout(() => content.classList.replace('scale-95', 'scale-100'), 10);
+        }
+
+        function closeAlert() {
+            const modal = document.getElementById('alert-modal');
+            const content = document.getElementById('alert-content');
+            content.classList.replace('scale-100', 'scale-95');
+            setTimeout(() => modal.classList.remove('active'), 200);
+        }
+
+        function showAdminLogin() {
+            document.getElementById('admin-password').value = '';
+            const modal = document.getElementById('admin-modal');
+            const content = document.getElementById('admin-content');
+            modal.classList.add('active');
+            setTimeout(() => content.classList.replace('scale-95', 'scale-100'), 10);
+        }
+
+        function closeAdminLogin() {
+            const modal = document.getElementById('admin-modal');
+            const content = document.getElementById('admin-content');
+            content.classList.replace('scale-100', 'scale-95');
+            setTimeout(() => modal.classList.remove('active'), 200);
+        }
+
+        function clearLeaderboard() {
+            const pwd = document.getElementById('admin-password').value;
+            if (pwd === ADMIN_PASSWORD) {
+                localStorage.setItem(STORAGE_KEY_LEADERBOARD, JSON.stringify([]));
+                const initialStats = questions.map((_, i) => ({ q: i, correct: 0, total: 0 }));
+                localStorage.setItem(STORAGE_KEY_STATS, JSON.stringify(initialStats));
+                
+                closeAdminLogin();
+                showAlert('Thành công', 'Đã dọn dẹp sạch sẽ dữ liệu bảng xếp hạng và thống kê.', '🧹');
+                if(!document.getElementById('screen-leaderboard').classList.contains('hidden')){
+                    loadLeaderboardData();
+                    loadStatsData();
+                }
+            } else {
+                showAlert('Từ chối', 'Mật khẩu quản trị không chính xác!', '🔒');
+            }
+        }
+
+        // Init on load
+        window.onload = initApp;
+
+    </script>
+</body>
+</html>
